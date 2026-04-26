@@ -130,7 +130,10 @@ jobs:
           #endif
 
           ATOMIC_FIX_EOF
-
+      - name: Fix usbip udev_context redefinition
+        run: |
+          sed -i 's/^struct udev \*udev_context;/extern struct udev \*udev_context;/' tools/usb/usbip/libsrc/vhci_driver.c
+        working-directory: ${{ github.workspace }}
       # ========== Clang 工具链缓存与下载 ==========
       - name: 缓存 Clang 工具链
         id: cache-clang
@@ -230,11 +233,6 @@ jobs:
           DEFCONFIG="arch/arm64/configs/${{ env.DEFCONFIG }}"
           sed -i 's/^CONFIG_PROCESS_RECLAIM=y/# CONFIG_PROCESS_RECLAIM is not set/' "${DEFCONFIG}"
           echo "# CONFIG_PROCESS_RECLAIM is not set" >> "${DEFCONFIG}"
-      - name: Fix usbip udev_context redefinition
-        run: |
-          # 将 vhci_driver.c 中的变量定义改为声明
-          sed -i 's/^struct udev \*udev_context;/extern struct udev \*udev_context;/' tools/usb/usbip/libsrc/vhci_driver.c
-        working-directory: ${{ github.workspace }}
       # ========== 编译主内核 ==========
       - name: 编译内核
         working-directory: kernel
