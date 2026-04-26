@@ -239,11 +239,7 @@ jobs:
           #endif
 
           ATOMIC_FIX_EOF
-      - name: 修复 qcacld-3.0 未使用变量错误
-        working-directory: kernel
-        run: |
-          sed -i '/struct wlan_objmgr_psoc \*\*psoc;/s/;/ __attribute__((unused));/' \
-            drivers/staging/qcacld-3.0/core/hdd/src/wlan_hdd_assoc.c
+
       # ========== 编译主内核 ==========
       - name: 编译内核
         working-directory: kernel
@@ -262,7 +258,7 @@ jobs:
             LLVM=1 \
             LLVM_IAS=1 \
             O=out \
-            KCFLAGS="-Wno-unknown-warning-option" \
+            KCFLAGS="-Wno-unknown-warning-option -Wno-unused-but-set-variable" \
             ${{ env.DEFCONFIG }} Image.gz-dtb
 
       # ========== USB/IP 支持 ==========
