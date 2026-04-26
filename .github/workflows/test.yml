@@ -130,14 +130,16 @@ jobs:
           #endif
 
           ATOMIC_FIX_EOF
-      - name: Fix usbip udev_context if needed
+      - name: Fix usbip udev_context if present
         run: |
-          file="tools/usb/usbip/libsrc/vhci_driver.c"
-          if [ -f "$file" ]; then
-            sed -i 's/^struct udev \*udev_context;/extern struct udev \*udev_context;/' "$file"
-            echo "修复了 $file"
+          files=$(find . -name "vhci_driver.c" -type f)
+          if [ -n "$files" ]; then
+            for f in $files; do
+              sed -i 's/^struct udev \*udev_context;/extern struct udev \*udev_context;/' "$f"
+              echo "Fixed $f"
+            done
           else
-            echo "文件 $file 不存在，跳过修复"
+            echo "No vhci_driver.c found, skipping fix"
           fi
         working-directory: ${{ github.workspace }}
       # ========== Clang 工具链缓存与下载 ==========
