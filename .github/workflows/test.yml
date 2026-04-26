@@ -1,4 +1,4 @@
-name: 多系统版本，以此份为基础！boot需要修改为crdroid官方提供的img！编译内核 (KernelSU Next + SUSFS + LXC/Docker + USB/IP + RTL8188EUS)
+name: 多系统版本，以此份为基础！boot需要修改为pe官方提供的img！编译内核 ( LXC/Docker + USB/IP + RTL8188EUS)
 
 on:
   push:
@@ -215,12 +215,6 @@ jobs:
           DEFCONFIG="arch/arm64/configs/${{ env.DEFCONFIG }}"
           sed -i 's/^CONFIG_PROCESS_RECLAIM=y/# CONFIG_PROCESS_RECLAIM is not set/' "${DEFCONFIG}"
           echo "# CONFIG_PROCESS_RECLAIM is not set" >> "${DEFCONFIG}"
-
-      - name: 修复 KSU/SUSFS 引入的 hugetlbpage 编译错误
-        working-directory: kernel
-        run: |
-          sed -i 's/\bptep\s*=\s*huge_pmd_share\b/pte = huge_pmd_share/' arch/arm64/mm/hugetlbpage.c
-          grep -n 'huge_pmd_share' arch/arm64/mm/hugetlbpage.c
 
       # ========== 编译主内核 ==========
       - name: 编译内核
