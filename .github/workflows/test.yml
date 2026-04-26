@@ -106,15 +106,30 @@ jobs:
             -o arch/arm64/configs/raphael_defconfig
 
       # ========== 源码快速修复 ==========
-      - name: 禁用 Btrfs 支持
+      - name: 修复 atomic_cond_read_relaxed 缺失 (旧内核适配)
         working-directory: kernel
         run: |
-          sed -i '/^source "fs\/btrfs\/Kconfig"/s/^/# /' fs/Kconfig
+          cat >> include/linux/atomic.h << 'ATOMIC_FIX_EOF'
+      
+          #ifndef smp_cond_load_relaxed
+          #define smp_cond_load_relaxed(ptr, cond_expr) ({             \
+              typeof(ptr) __PTR = (ptr);                              \
+              typeof(*ptr) VAL;                                       \
+              for (;;) {                                              \
+                  VAL = READ_ONCE(*__PTR);                            \
+                  if (cond_expr)                                      \
+                      break;                                          \
+                  cpu_relax();                                        \
+              }                                                       \
+              VAL;                                                    \
+          })
+          #endif
+      
+          #ifndef atomic_cond_read_relaxed
+          #define atomic_cond_read_relaxed(v, c)  smp_cond_load_relaxed(&(v)->counter, (c))
+          #endif
 
-      - name: 修复 fair.c 缺失的 se_update_runnable 调用
-        working-directory: kernel
-        run: |
-          sed -i '/se_update_runnable(se);/s/^/\/\//' kernel/sched/fair.c
+          ATOMIC_FIX_EOF
 
       # ========== Clang 工具链缓存与下载 ==========
       - name: 缓存 Clang 工具链
@@ -215,30 +230,6 @@ jobs:
           DEFCONFIG="arch/arm64/configs/${{ env.DEFCONFIG }}"
           sed -i 's/^CONFIG_PROCESS_RECLAIM=y/# CONFIG_PROCESS_RECLAIM is not set/' "${DEFCONFIG}"
           echo "# CONFIG_PROCESS_RECLAIM is not set" >> "${DEFCONFIG}"
-      - name: 修复 atomic_cond_read_relaxed 缺失 (旧内核适配)
-        working-directory: kernel
-        run: |
-          cat >> include/linux/atomic.h << 'ATOMIC_FIX_EOF'
-      
-          #ifndef smp_cond_load_relaxed
-          #define smp_cond_load_relaxed(ptr, cond_expr) ({             \
-              typeof(ptr) __PTR = (ptr);                              \
-              typeof(*ptr) VAL;                                       \
-              for (;;) {                                              \
-                  VAL = READ_ONCE(*__PTR);                            \
-                  if (cond_expr)                                      \
-                      break;                                          \
-                  cpu_relax();                                        \
-              }                                                       \
-              VAL;                                                    \
-          })
-          #endif
-      
-          #ifndef atomic_cond_read_relaxed
-          #define atomic_cond_read_relaxed(v, c)  smp_cond_load_relaxed(&(v)->counter, (c))
-          #endif
-
-          ATOMIC_FIX_EOF
 
       # ========== 编译主内核 ==========
       - name: 编译内核
